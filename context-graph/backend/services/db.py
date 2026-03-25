@@ -12,10 +12,39 @@ def get_connection() -> sqlite3.Connection:
     return conn
 
 
-def init_db():
+def init_db(force_recreate: bool = False):
     os.makedirs(DB_PATH.parent, exist_ok=True)
     conn = get_connection()
     cursor = conn.cursor()
+    if force_recreate:
+        cursor.executescript("""
+            DROP TABLE IF EXISTS billing_document_headers;
+            DROP TABLE IF EXISTS billing_document_items;
+            DROP TABLE IF EXISTS billing_document_cancellations;
+            DROP TABLE IF EXISTS sales_order_headers;
+            DROP TABLE IF EXISTS sales_order_items;
+            DROP TABLE IF EXISTS sales_order_schedule_lines;
+            DROP TABLE IF EXISTS outbound_delivery_headers;
+            DROP TABLE IF EXISTS outbound_delivery_items;
+            DROP TABLE IF EXISTS journal_entry_items_accounts_receivable;
+            DROP TABLE IF EXISTS payments_accounts_receivable;
+            DROP TABLE IF EXISTS business_partners;
+            DROP TABLE IF EXISTS business_partner_addresses;
+            DROP TABLE IF EXISTS customer_company_assignments;
+            DROP TABLE IF EXISTS customer_sales_area_assignments;
+            DROP TABLE IF EXISTS products;
+            DROP TABLE IF EXISTS product_descriptions;
+            DROP TABLE IF EXISTS product_plants;
+            DROP TABLE IF EXISTS product_storage_locations;
+            DROP TABLE IF EXISTS plants;
+            DROP TABLE IF EXISTS customers;
+            DROP TABLE IF EXISTS addresses;
+            DROP TABLE IF EXISTS orders;
+            DROP TABLE IF EXISTS order_items;
+            DROP TABLE IF EXISTS deliveries;
+            DROP TABLE IF EXISTS invoices;
+            DROP TABLE IF EXISTS payments;
+        """)
     cursor.executescript("""
         CREATE TABLE IF NOT EXISTS billing_document_headers (
             billingDocument TEXT PRIMARY KEY,
@@ -53,13 +82,19 @@ def init_db():
             salesOrder TEXT PRIMARY KEY,
             salesOrderType TEXT,
             salesOrganization TEXT,
+            distributionChannel TEXT,
+            organizationDivision TEXT,
+            salesGroup TEXT,
+            salesOffice TEXT,
             soldToParty TEXT,
             creationDate TEXT,
-            totalNetOrderAmount REAL,
+            totalNetAmount REAL,
             transactionCurrency TEXT,
             overallDeliveryStatus TEXT,
-            overallSDProcessStatus TEXT,
-            overallBillingStatus TEXT
+            overallOrdReltdBillgStatus TEXT,
+            overallSdDocReferenceStatus TEXT,
+            requestedDeliveryDate TEXT,
+            customerPaymentTerms TEXT
         );
         CREATE TABLE IF NOT EXISTS sales_order_items (
             salesOrder TEXT,
@@ -68,10 +103,7 @@ def init_db():
             requestedQuantity REAL,
             requestedQuantityUnit TEXT,
             netAmount REAL,
-            deliveryStatus TEXT,
-            overallSDProcessStatus TEXT,
-            billingStatus TEXT,
-            plant TEXT,
+            productionPlant TEXT,
             storageLocation TEXT,
             PRIMARY KEY (salesOrder, salesOrderItem)
         );
@@ -86,11 +118,14 @@ def init_db():
         );
         CREATE TABLE IF NOT EXISTS outbound_delivery_headers (
             deliveryDocument TEXT PRIMARY KEY,
-            deliveryDocumentType TEXT,
             shippingPoint TEXT,
-            deliveryDate TEXT,
+            creationDate TEXT,
             actualGoodsMovementDate TEXT,
-            overallDeliveryStatus TEXT,
+            deliveryBlockReason TEXT,
+            headerBillingBlockReason TEXT,
+            overallGoodsMovementStatus TEXT,
+            overallPickingStatus TEXT,
+            hdrGeneralIncompletionStatus TEXT,
             soldToParty TEXT,
             shipToParty TEXT
         );
@@ -100,8 +135,8 @@ def init_db():
             material TEXT,
             actualDeliveryQuantity REAL,
             deliveryQuantityUnit TEXT,
-            referenceSDDocument TEXT,
-            referenceSDDocumentItem TEXT,
+            referenceSdDocument TEXT,
+            referenceSdDocumentItem TEXT,
             plant TEXT,
             storageLocation TEXT,
             PRIMARY KEY (deliveryDocument, deliveryDocumentItem)
@@ -114,7 +149,12 @@ def init_db():
             customer TEXT,
             amountInTransactionCurrency REAL,
             transactionCurrency TEXT,
-            documentItemText TEXT,
+            referenceDocument TEXT,
+            clearingDate TEXT,
+            clearingAccountingDocument TEXT,
+            clearingDocFiscalYear TEXT,
+            postingDate TEXT,
+            documentDate TEXT,
             assignmentReference TEXT,
             PRIMARY KEY (accountingDocument, companyCode, fiscalYear, accountingDocumentItem)
         );
@@ -122,37 +162,48 @@ def init_db():
             accountingDocument TEXT,
             companyCode TEXT,
             fiscalYear TEXT,
+            accountingDocumentItem TEXT,
             customer TEXT,
-            paymentAmount REAL,
+            amountInTransactionCurrency REAL,
             transactionCurrency TEXT,
+            postingDate TEXT,
+            documentDate TEXT,
+            clearingDate TEXT,
+            clearingAccountingDocument TEXT,
+            clearingDocFiscalYear TEXT,
+            referenceDocument TEXT,
+            paymentAmount REAL,
             paymentDate TEXT,
             paymentMethod TEXT,
             clearingDocument TEXT,
-            PRIMARY KEY (accountingDocument, companyCode, fiscalYear)
+            PRIMARY KEY (accountingDocument, companyCode, fiscalYear, accountingDocumentItem)
         );
         CREATE TABLE IF NOT EXISTS business_partners (
             businessPartner TEXT PRIMARY KEY,
+            customer TEXT,
             businessPartnerName TEXT,
-            businessPartnerType TEXT,
+            businessPartnerFullName TEXT,
             businessPartnerCategory TEXT,
-            language TEXT,
-            country TEXT,
             creationDate TEXT
+            ,lastChangeDate TEXT,
+            businessPartnerIsBlocked INTEGER,
+            isMarkedForArchiving INTEGER
         );
         CREATE TABLE IF NOT EXISTS business_partner_addresses (
             businessPartner TEXT,
-            addressID TEXT,
+            addressId TEXT,
             streetName TEXT,
             cityName TEXT,
             region TEXT,
             country TEXT,
             postalCode TEXT,
-            PRIMARY KEY (businessPartner, addressID)
+            PRIMARY KEY (businessPartner, addressId)
         );
         CREATE TABLE IF NOT EXISTS customer_company_assignments (
             customer TEXT,
             companyCode TEXT,
-            accountGroup TEXT,
+            customerAccountGroup TEXT,
+            reconciliationAccount TEXT,
             paymentTerms TEXT,
             PRIMARY KEY (customer, companyCode)
         );
@@ -183,7 +234,8 @@ def init_db():
         CREATE TABLE IF NOT EXISTS product_plants (
             product TEXT,
             plant TEXT,
-            profileCode TEXT,
+            mrpType TEXT,
+            profitCenter TEXT,
             PRIMARY KEY (product, plant)
         );
         CREATE TABLE IF NOT EXISTS product_storage_locations (
@@ -195,9 +247,11 @@ def init_db():
         CREATE TABLE IF NOT EXISTS plants (
             plant TEXT PRIMARY KEY,
             plantName TEXT,
-            country TEXT,
-            region TEXT,
-            cityName TEXT
+            salesOrganization TEXT,
+            distributionChannel TEXT,
+            division TEXT,
+            addressId TEXT,
+            language TEXT
         );
     """)
     conn.commit()

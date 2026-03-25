@@ -97,15 +97,17 @@ npm install
 
 ### Dataset Ingestion
 
-1. Download the dataset from the assignment Google Drive link.
-2. Extract CSVs into `backend/raw_data/`.
-3. Open `backend/services/ingest.py` and update the `MAPPINGS` dict to match the actual CSV column headers.
-4. Run ingestion:
+1. Place the extracted SAP O2C dataset folder (with subfolders like `sales_order_headers/`, `billing_document_items/`, etc.) anywhere on your machine.
+2. Run ingestion with the dataset root path (JSONL-based, no mapping edits needed):
 
 ```bash
 cd backend
-python -m services.ingest --data-dir ./raw_data
+python -m services.ingest --data-dir ../sap-o2c-data
 ```
+
+Notes:
+- The loader truncates each mapped table before importing, so reruns are idempotent.
+- Missing folders are skipped safely.
 
 ### Running
 

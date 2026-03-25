@@ -59,7 +59,7 @@ def build_full_graph() -> dict:
         if r.get("soldToParty"):
             edges.append(_edge(f"bp_{r['soldToParty']}", f"so_{so}", "placed"))
 
-    # ── Link Sales Orders → Billing Documents via items ───────────────────
+    # ── Link Deliveries → Billing Documents via billing items ──────────────
     for row in conn.execute("""
         SELECT DISTINCT bdi.billingDocument, bdi.referenceSdDocument
         FROM billing_document_items bdi
@@ -67,7 +67,7 @@ def build_full_graph() -> dict:
         LIMIT 500
     """):
         r = dict(row)
-        edges.append(_edge(f"so_{r['referenceSdDocument']}", f"bd_{r['billingDocument']}", "billed_as"))
+        edges.append(_edge(f"del_{r['referenceSdDocument']}", f"bd_{r['billingDocument']}", "billed_as"))
 
     # ── Outbound Deliveries ───────────────────────────────────────────────
     for row in conn.execute("SELECT * FROM outbound_delivery_headers LIMIT 200"):
@@ -75,17 +75,47 @@ def build_full_graph() -> dict:
         dd = r["deliveryDocument"]
         nodes.append(_node(f"del_{dd}", f"Delivery {dd}", "Delivery", r))
         if r.get("soldToParty"):
-            edges.append(_edge(f"so_{r['soldToParty']}", f"del_{dd}", "delivered_to"))
+            edges.append(_edge(f"bp_{r['soldToParty']}", f"del_{dd}", "delivered_to"))
 
     # ── Link Deliveries → Sales Orders via delivery items ─────────────────
     for row in conn.execute("""
-        SELECT DISTINCT deliveryDocument, referenceSDDocument
+        SELECT DISTINCT deliveryDocument, referenceSdDocument
         FROM outbound_delivery_items
-        WHERE referenceSDDocument IS NOT NULL AND referenceSDDocument != ''
+        WHERE referenceSdDocument IS NOT NULL AND referenceSdDocument != ''
         LIMIT 500
     """):
         r = dict(row)
-        edges.append(_edge(f"so_{r['referenceSDDocument']}", f"del_{r['deliveryDocument']}", "fulfilled_by"))
+        edges.append(_edge(f"so_{r['referenceSdDocument']}", f"del_{r['deliveryDocument']}", "fulfilled_by"))
+
+    # ── Link Sales Orders → Products via order items ──────────────────────
+    for row in conn.execute("""
+        SELECT DISTINCT salesOrder, material
+        FROM sales_order_items
+        WHERE material IS NOT NULL AND material != ''
+        LIMIT 1000
+    """):
+        r = dict(row)
+        edges.append(_edge(f"so_{r['salesOrder']}", f"prod_{r['material']}", "contains_product"))
+
+    # ── Link Deliveries → Products via delivery items ─────────────────────
+    for row in conn.execute("""
+        SELECT DISTINCT deliveryDocument, material
+        FROM outbound_delivery_items
+        WHERE material IS NOT NULL AND material != ''
+        LIMIT 1000
+    """):
+        r = dict(row)
+        edges.append(_edge(f"del_{r['deliveryDocument']}", f"prod_{r['material']}", "ships_product"))
+
+    # ── Link Billing Documents → Products via billing items ───────────────
+    for row in conn.execute("""
+        SELECT DISTINCT billingDocument, material
+        FROM billing_document_items
+        WHERE material IS NOT NULL AND material != ''
+        LIMIT 1000
+    """):
+        r = dict(row)
+        edges.append(_edge(f"bd_{r['billingDocument']}", f"prod_{r['material']}", "bills_product"))
 
     # ── Journal Entries ───────────────────────────────────────────────────
     for row in conn.execute("""
@@ -110,7 +140,7 @@ def build_full_graph() -> dict:
     # ── Payments ──────────────────────────────────────────────────────────
     for row in conn.execute("SELECT * FROM payments_accounts_receivable LIMIT 200"):
         r = dict(row)
-        pid = f"{r['accountingDocument']}_{r['companyCode']}"
+        pid = f"{r['accountingDocument']}_{r['companyCode']}_{r.get('accountingDocumentItem', '1')}"
         nodes.append(_node(f"pay_{pid}", f"Payment {r['accountingDocument']}", "Payment", r))
         jid = f"{r['accountingDocument']}_{r['companyCode']}"
         edges.append(_edge(f"je_{jid}", f"pay_{pid}", "cleared_by"))
@@ -132,6 +162,36 @@ def build_full_graph() -> dict:
         prod = r["product"]
         label = r.get("productDescription") or prod
         nodes.append(_node(f"prod_{prod}", label[:30], "Product", r))
+
+    # ── Link products → plants from product-plant assignments ─────────────
+    for row in conn.execute("""
+        SELECT DISTINCT product, plant
+        FROM product_plants
+        WHERE plant IS NOT NULL AND plant != ''
+        LIMIT 1000
+    """):
+        r = dict(row)
+        edges.append(_edge(f"prod_{r['product']}", f"pl_{r['plant']}", "available_at"))
+
+    # ── Link deliveries → plants via delivery items ───────────────────────
+    for row in conn.execute("""
+        SELECT DISTINCT deliveryDocument, plant
+        FROM outbound_delivery_items
+        WHERE plant IS NOT NULL AND plant != ''
+        LIMIT 1000
+    """):
+        r = dict(row)
+        edges.append(_edge(f"del_{r['deliveryDocument']}", f"pl_{r['plant']}", "dispatched_from"))
+
+    # ── Link sales order items' production plant ──────────────────────────
+    for row in conn.execute("""
+        SELECT DISTINCT salesOrder, productionPlant
+        FROM sales_order_items
+        WHERE productionPlant IS NOT NULL AND productionPlant != ''
+        LIMIT 1000
+    """):
+        r = dict(row)
+        edges.append(_edge(f"so_{r['salesOrder']}", f"pl_{r['productionPlant']}", "planned_from"))
 
     # ── Plants ────────────────────────────────────────────────────────────
     for row in conn.execute("SELECT * FROM plants LIMIT 50"):

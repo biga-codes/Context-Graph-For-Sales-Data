@@ -55,9 +55,11 @@ TABLE_CONFIG = {
         "table": "sales_order_headers",
         "pk": "salesOrder",
         "columns": [
-            "salesOrder", "salesOrderType", "salesOrganization", "soldToParty",
-            "creationDate", "totalNetOrderAmount", "transactionCurrency",
-            "overallDeliveryStatus", "overallSDProcessStatus", "overallBillingStatus",
+            "salesOrder", "salesOrderType", "salesOrganization",
+            "distributionChannel", "organizationDivision", "salesGroup", "salesOffice",
+            "soldToParty", "creationDate", "totalNetAmount", "transactionCurrency",
+            "overallDeliveryStatus", "overallOrdReltdBillgStatus",
+            "overallSdDocReferenceStatus", "requestedDeliveryDate", "customerPaymentTerms",
         ],
     },
     "sales_order_items": {
@@ -66,8 +68,7 @@ TABLE_CONFIG = {
         "columns": [
             "salesOrder", "salesOrderItem", "material",
             "requestedQuantity", "requestedQuantityUnit", "netAmount",
-            "deliveryStatus", "overallSDProcessStatus", "billingStatus",
-            "plant", "storageLocation",
+            "productionPlant", "storageLocation",
         ],
     },
     "sales_order_schedule_lines": {
@@ -82,8 +83,9 @@ TABLE_CONFIG = {
         "table": "outbound_delivery_headers",
         "pk": "deliveryDocument",
         "columns": [
-            "deliveryDocument", "deliveryDocumentType", "shippingPoint",
-            "deliveryDate", "actualGoodsMovementDate", "overallDeliveryStatus",
+            "deliveryDocument", "shippingPoint", "creationDate",
+            "actualGoodsMovementDate", "deliveryBlockReason", "headerBillingBlockReason",
+            "overallGoodsMovementStatus", "overallPickingStatus", "hdrGeneralIncompletionStatus",
             "soldToParty", "shipToParty",
         ],
     },
@@ -93,7 +95,7 @@ TABLE_CONFIG = {
         "columns": [
             "deliveryDocument", "deliveryDocumentItem", "material",
             "actualDeliveryQuantity", "deliveryQuantityUnit",
-            "referenceSDDocument", "referenceSDDocumentItem",
+            "referenceSdDocument", "referenceSdDocumentItem",
             "plant", "storageLocation",
         ],
     },
@@ -104,38 +106,42 @@ TABLE_CONFIG = {
             "accountingDocument", "companyCode", "fiscalYear",
             "accountingDocumentItem", "customer",
             "amountInTransactionCurrency", "transactionCurrency",
-            "documentItemText", "assignmentReference",
+            "referenceDocument", "clearingDate", "clearingAccountingDocument",
+            "clearingDocFiscalYear", "postingDate", "documentDate", "assignmentReference",
         ],
     },
     "payments_accounts_receivable": {
         "table": "payments_accounts_receivable",
         "pk": None,
         "columns": [
-            "accountingDocument", "companyCode", "fiscalYear", "customer",
-            "paymentAmount", "transactionCurrency",
-            "paymentDate", "paymentMethod", "clearingDocument",
+            "accountingDocument", "companyCode", "fiscalYear", "accountingDocumentItem",
+            "customer", "amountInTransactionCurrency", "transactionCurrency",
+            "postingDate", "documentDate", "clearingDate", "clearingAccountingDocument",
+            "clearingDocFiscalYear", "referenceDocument",
+            "paymentAmount", "paymentDate", "paymentMethod", "clearingDocument",
         ],
     },
     "business_partners": {
         "table": "business_partners",
         "pk": "businessPartner",
         "columns": [
-            "businessPartner", "businessPartnerName", "businessPartnerType",
-            "businessPartnerCategory", "language", "country", "creationDate",
+            "businessPartner", "customer", "businessPartnerName", "businessPartnerFullName",
+            "businessPartnerCategory", "creationDate", "lastChangeDate",
+            "businessPartnerIsBlocked", "isMarkedForArchiving",
         ],
     },
     "business_partner_addresses": {
         "table": "business_partner_addresses",
         "pk": None,
         "columns": [
-            "businessPartner", "addressID", "streetName", "cityName",
+            "businessPartner", "addressId", "streetName", "cityName",
             "region", "country", "postalCode",
         ],
     },
     "customer_company_assignments": {
         "table": "customer_company_assignments",
         "pk": None,
-        "columns": ["customer", "companyCode", "accountGroup", "paymentTerms"],
+        "columns": ["customer", "companyCode", "customerAccountGroup", "reconciliationAccount", "paymentTerms"],
     },
     "customer_sales_area_assignments": {
         "table": "customer_sales_area_assignments",
@@ -161,7 +167,7 @@ TABLE_CONFIG = {
     "product_plants": {
         "table": "product_plants",
         "pk": None,
-        "columns": ["product", "plant", "profileCode"],
+        "columns": ["product", "plant", "mrpType", "profitCenter"],
     },
     "product_storage_locations": {
         "table": "product_storage_locations",
@@ -171,7 +177,7 @@ TABLE_CONFIG = {
     "plants": {
         "table": "plants",
         "pk": "plant",
-        "columns": ["plant", "plantName", "country", "region", "cityName"],
+        "columns": ["plant", "plantName", "salesOrganization", "distributionChannel", "division", "addressId", "language"],
     },
 }
 
@@ -223,7 +229,7 @@ def load_folder(conn, folder_path: Path, config: dict):
 
 
 def ingest(data_dir: str):
-    init_db()
+    init_db(force_recreate=True)
     conn = get_connection()
     root = Path(data_dir)
 
