@@ -38,13 +38,25 @@ https://github.com/user-attachments/assets/d21b0e70-8d17-4d4c-af1d-c02cc57555f5
                          │
               Google Gemini 1.5 Flash
 ```
+### Design Decisions I made:
+- caching graph nodes server side so they load faster -> this was especially important because I used a free tier web service ( I added this strategy for graph generation to reduce repeated load on the backend server and helps with much faster reloads after the first request.)
+- adding a small mini index for all major hubs (nodes with the most connections) for quick access, and neighbourhood highlighting ( upto 2nd degree neighbours have been considered by me for this purpose)
+- I kept node meta data attached to each node for easy viewing.
+- entity types have specific colors and badges so you can differentiate between them
+- I added test coverage for graph nodes
+to assert unique node ids, valid endpoints, and no malformed nodes during/ from ingestion
 
 ### Database Choice
 
-1. SQLite was chosen for local portability, zero infrastructure setup, and easy reproducibility for take-home evaluation.
-2. It is a good fit for this dataset size and lets us keep ingestion + query path simple and deterministic.
-3. SQLite also supports transparent SQL inspection and fast iteration for prompt-to-SQL debugging.
-4. Tradeoff: not ideal for concurrent heavy workloads or very large production volumes; in production this can move to PostgreSQL with minimal API changes.
+1. I chose SQLite for local data portability (data would be accessible locally), I prioritized simplicity while validating product behavior since
+I wanted to reduce infrastructure complexity early and focus on graph logic, UX, and query behavior first.
+2. It is a good fit for this dataset size, the data pipeline works naturally with a file-based DB
+I ingest JSONL data and convert it into relational tables. A single SQLite file makes this easy to manage, reset, back up, and move.
+3. My workload is mostly read-heavy
+My backend reads relational data, builds a graph view, and serves it. SQLite performs well for this kind of local read-focused workload
+4.
+5. I still kept a migration path open
+I’m using standard SQL patterns, so I can move to PostgreSQL later if I need higher concurrency or production-scale features.
    
 The graph is constructed in-memory from relational queries in `graph_builder.py`, which means you get the flexibility of SQL (for the LLM query path) AND a graph representation (for the UI) from the same source of truth. For a production deployment with millions of rows, swap to PostgreSQL (same query layer) or add a Neo4j graph layer on top.
 
@@ -74,14 +86,6 @@ This separation makes guardrails reliable: the model explicitly labels relevance
 
 **Stage 2 — Answer synthesis**
 The raw query results (capped at 50 rows for context) are sent back to Gemini with the original question. The model is asked to produce a 2–4 sentence data-backed answer without mentioning SQL or database internals.
-
-# Design Decisions I made:
-- caching graph nodes server side so they load faster -> this was especially important because I used a free tier web service ( I added caching strategy for graph generation to reduce repeated load on the backend server)
-- adding a small mini index for all major hubs (nodes with the most connections) for quick access, and neighbourhood highlighting ( upto 2nd degree neighbours have been considered by me for this purpose)
-- I kept node meta data attached to each node for easy viewing.
-- entity types have specific colors and badges so you can differentiate between them
-- I added test coverage for graph nodes
-to assert unique node ids, valid endpoints, and no malformed nodes during/ from ingestion
 
 
 ### Guardrails
