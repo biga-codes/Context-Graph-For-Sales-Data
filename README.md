@@ -10,7 +10,6 @@ https://github.com/user-attachments/assets/d21b0e70-8d17-4d4c-af1d-c02cc57555f5
 
 
 
-
 ## Architecture
 
 ```
@@ -77,7 +76,8 @@ This separation makes guardrails reliable: the model explicitly labels relevance
 The raw query results (capped at 50 rows for context) are sent back to Gemini with the original question. The model is asked to produce a 2–4 sentence data-backed answer without mentioning SQL or database internals.
 
 ### Guardrails
-
+- SQL validation before execution (check table+column existence).
+- Auto-retry: feed DB error back to LLM once and ask it to fix query
 - Data grounding guardrail: response generation happens only after SQL execution; if no rows, system returns explicit no-result message
 - The backend's `execute_query()` function enforces `SELECT`-only at the string level — any other statement raises a `ValueError` before execution.
 - Query guardrail: backend enforces SELECT-only execution and rejects mutating SQL.
@@ -93,7 +93,7 @@ The raw query results (capped at 50 rows for context) are sent back to Gemini wi
 - Node.js 18+
 - One API key for either:
     - [Google Gemini](https://ai.google.dev)
-    - [Groq](https://console.groq.com) (free tier, no credit card)
+    - [Groq](https://console.groq.com) 
 
 ### Backend
 
@@ -204,3 +204,7 @@ context-graph/
             ├── NodeDetailPanel.jsx
             └── ChatPanel.jsx    # Chat + SQL disclosure
 ```
+
+
+# Live Deployment Link:
+https://context-graph-for-sales-data-front-end.onrender.com/
