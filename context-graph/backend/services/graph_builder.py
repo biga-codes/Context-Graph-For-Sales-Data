@@ -233,6 +233,10 @@ def _get_cached_full_graph() -> dict:
     return data
 
 
+def get_full_graph_cached() -> dict:
+    return _get_cached_full_graph()
+
+
 def get_node_neighbors(node_id: str) -> dict:
     full = _get_cached_full_graph()
     neighbor_ids = set()
