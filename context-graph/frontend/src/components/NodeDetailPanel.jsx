@@ -79,13 +79,23 @@ export default function NodeDetailPanel() {
     if (highlighting) return;
     setHighlighting(true);
     try {
-      const ids = new Set([selectedNode.id]);
+      const adjacency = new Map();
       edges.forEach((e) => {
-        if (e.source === selectedNode.id || e.target === selectedNode.id) {
-          ids.add(e.source);
-          ids.add(e.target);
-        }
+        if (!adjacency.has(e.source)) adjacency.set(e.source, new Set());
+        if (!adjacency.has(e.target)) adjacency.set(e.target, new Set());
+        adjacency.get(e.source).add(e.target);
+        adjacency.get(e.target).add(e.source);
       });
+
+      const center = selectedNode.id;
+      const firstDegree = adjacency.get(center) || new Set();
+      const secondDegree = new Set();
+
+      firstDegree.forEach((n1) => {
+        (adjacency.get(n1) || new Set()).forEach((n2) => secondDegree.add(n2));
+      });
+
+      const ids = new Set([center, ...firstDegree, ...secondDegree]);
       setHighlightedNodeIds([...ids]);
     } finally {
       setHighlighting(false);
