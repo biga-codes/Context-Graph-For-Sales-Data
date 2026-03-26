@@ -8,7 +8,7 @@ import ReactFlow, {
   BackgroundVariant,
 } from "reactflow";
 import { useStore } from "../store/useStore";
-import { fetchGraph } from "../services/api";
+import { fetchGraph, fetchNeighbors } from "../services/api";
 import { applyDagreLayout } from "../services/layout";
 import EntityNode from "./EntityNode";
 import NodeDetailPanel from "./NodeDetailPanel";
@@ -31,6 +31,7 @@ export default function GraphCanvas() {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [rfInstance, setRfInstance] = useState(null);
+  const [initialViewApplied, setInitialViewApplied] = useState(false);
 
   const topHubs = useMemo(() => {
     const degree = new Map();
@@ -62,6 +63,29 @@ export default function GraphCanvas() {
   useEffect(() => {
     setEdges(storeEdges);
   }, [storeEdges]);
+
+  // Initial viewport: focus the top part of the graph for a cleaner first impression.
+  useEffect(() => {
+    if (!rfInstance || initialViewApplied || nodes.length === 0) return;
+
+    const topCount = Math.max(12, Math.floor(nodes.length * 0.25));
+    const topNodes = [...nodes]
+      .sort((a, b) => (a.position?.y ?? 0) - (b.position?.y ?? 0))
+      .slice(0, topCount)
+      .map((n) => ({ id: n.id }));
+
+    requestAnimationFrame(() => {
+      rfInstance.fitView({
+        nodes: topNodes,
+        padding: 0.12,
+        minZoom: 0.8,
+        maxZoom: 1.9,
+        duration: 420,
+      });
+    });
+
+    setInitialViewApplied(true);
+  }, [rfInstance, nodes, initialViewApplied]);
 
   // Load full graph on mount
   useEffect(() => {
@@ -138,8 +162,6 @@ export default function GraphCanvas() {
           pathOptions: { offset: 36, borderRadius: 16 },
           style: { strokeWidth: 1.2 },
         }}
-        fitView
-        fitViewOptions={{ padding: 0.01, minZoom: 0.75, maxZoom: 1.8 }}
         minZoom={0.1}
         maxZoom={2}
       >
