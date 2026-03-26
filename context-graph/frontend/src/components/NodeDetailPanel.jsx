@@ -1,7 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import { useStore } from "../store/useStore";
 import { fetchNeighbors } from "../services/api";
-import { applyDagreLayout } from "../services/layout";
 
 const s = {
   panel: {
@@ -70,22 +69,47 @@ const s = {
 };
 
 export default function NodeDetailPanel() {
-  const { selectedNode, setSelectedNode, mergeNeighbors, nodes, edges, setGraph } = useStore();
+  const { selectedNode, setSelectedNode, mergeNeighbors, setGraph } = useStore();
+  const [expanding, setExpanding] = useState(false);
 
   if (!selectedNode) return null;
 
   const { label, entityType, color, properties } = selectedNode.data;
 
   const handleExpand = async () => {
+    if (expanding) return;
+    setExpanding(true);
     try {
+      const beforeIds = new Set(useStore.getState().nodes.map((n) => n.id));
       const data = await fetchNeighbors(selectedNode.id);
       mergeNeighbors(data);
-      // Re-layout after merge
+
+      // Lightweight placement: only position newly added nodes around selected node.
       const { nodes: allNodes, edges: allEdges } = useStore.getState();
-      const laid = applyDagreLayout(allNodes, allEdges);
-      setGraph({ nodes: laid, edges: allEdges });
+      const centerX = selectedNode.position?.x ?? 0;
+      const centerY = selectedNode.position?.y ?? 0;
+      const radius = 220;
+
+      const newNodes = allNodes.filter((n) => !beforeIds.has(n.id));
+      const newPosById = new Map();
+      newNodes.forEach((n, idx) => {
+        const angle = (2 * Math.PI * idx) / Math.max(1, newNodes.length);
+        newPosById.set(n.id, {
+          x: centerX + Math.cos(angle) * radius,
+          y: centerY + Math.sin(angle) * radius,
+        });
+      });
+
+      const adjustedNodes = allNodes.map((n) => {
+        const p = newPosById.get(n.id);
+        return p ? { ...n, position: p } : n;
+      });
+
+      setGraph({ nodes: adjustedNodes, edges: allEdges });
     } catch (e) {
       console.error("Expand failed", e);
+    } finally {
+      setExpanding(false);
     }
   };
 
@@ -109,8 +133,16 @@ export default function NodeDetailPanel() {
           ))}
       </div>
 
-      <button style={s.expandBtn} onClick={handleExpand}>
-        ⊕ Expand Neighbors
+      <button
+        style={{
+          ...s.expandBtn,
+          opacity: expanding ? 0.7 : 1,
+          cursor: expanding ? "not-allowed" : "pointer",
+        }}
+        onClick={handleExpand}
+        disabled={expanding}
+      >
+        {expanding ? "Expanding..." : "⊕ Expand Neighbors"}
       </button>
     </div>
   );
