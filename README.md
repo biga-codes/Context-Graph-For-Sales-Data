@@ -4,6 +4,8 @@ A graph-based data exploration system with a natural language query interface. B
 
 ---
 
+https://youtu.be/F7UAd0A4Z3E
+
 ## Architecture
 
 ```
