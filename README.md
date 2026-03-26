@@ -75,7 +75,7 @@ This separation makes guardrails reliable: the model explicitly labels relevance
 **Stage 2 — Answer synthesis**
 The raw query results (capped at 50 rows for context) are sent back to Gemini with the original question. The model is asked to produce a 2–4 sentence data-backed answer without mentioning SQL or database internals.
 
-## Design Decisions I made:
+# Design Decisions I made:
 - caching graph nodes server side so they load faster -> this was especially important because I used a free tier web service ( I added caching strategy for graph generation to reduce repeated load on the backend server)
 - adding a small mini index for all major hubs (nodes with the most connections) for quick access, and neighbourhood highlighting ( upto 2nd degree neighbours have been considered by me for this purpose)
 - I kept node meta data attached to each node for easy viewing.
