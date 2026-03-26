@@ -3,9 +3,9 @@ import { useStore } from "../store/useStore";
 import { sendChat } from "../services/api";
 
 const SUGGESTIONS = [
-  "Which product has the highest number of deliveries?",
+  "Top products by billing document count",
   "Which products have the highest billed net amount, and how many billing documents does each have?",
-  "For sales order 740506, what are the payment details and delivery status?",
+  "Top products by billing document count",
   "Show orders that were delivered and billed",
 ];
 
