@@ -27,6 +27,7 @@ export default function GraphCanvas() {
   const storeNodes = useStore((s) => s.nodes);
   const storeEdges = useStore((s) => s.edges);
   const loading = useStore((s) => s.loading);
+  const selectedNode = useStore((s) => s.selectedNode);
 
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -61,8 +62,23 @@ export default function GraphCanvas() {
   }, [storeNodes, highlightedNodeIds]);
 
   useEffect(() => {
-    setEdges(storeEdges);
-  }, [storeEdges]);
+    const selectedId = selectedNode?.id;
+    const enrichedEdges = storeEdges.map((e) => {
+      const isFirstDegree = selectedId && (e.source === selectedId || e.target === selectedId);
+      return {
+        ...e,
+        animated: Boolean(isFirstDegree),
+        style: {
+          ...(e.style || {}),
+          stroke: isFirstDegree ? "#f59e0b" : "#4b5563",
+          strokeWidth: isFirstDegree ? 2.6 : 1.2,
+          opacity: isFirstDegree ? 1 : 0.42,
+        },
+      };
+    });
+
+    setEdges(enrichedEdges);
+  }, [storeEdges, selectedNode]);
 
   // Initial viewport: focus the top part of the graph for a cleaner first impression.
   useEffect(() => {
