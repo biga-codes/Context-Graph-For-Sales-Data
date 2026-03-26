@@ -3,8 +3,6 @@ import os
 import json
 import re
 import requests
-import google.generativeai as genai  # pyright: ignore[reportMissingImports]
-from google.api_core.exceptions import GoogleAPICallError, NotFound
 from services.db import execute_query
 
 _LLM_PROVIDER = os.getenv("LLM_PROVIDER", "gemini").strip().lower()
@@ -18,8 +16,6 @@ _MODEL_CANDIDATES = [
     "gemini-1.5-flash-8b",
 ]
 _model = None
-if _API_KEY:
-    genai.configure(api_key=_API_KEY)
 
 
 
@@ -27,6 +23,12 @@ def _get_model():
     global _model
     if _model is not None:
         return _model
+
+    try:
+        import google.generativeai as genai  # pyright: ignore[reportMissingImports]
+        from google.api_core.exceptions import GoogleAPICallError, NotFound
+    except Exception:
+        return None
 
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
