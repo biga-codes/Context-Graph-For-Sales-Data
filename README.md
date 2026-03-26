@@ -88,7 +88,11 @@ The raw query results (capped at 50 rows for context) are sent back to Gemini wi
 
 
 ### Guardrails
-- SQL validation before execution (check table+column existence).
+- I only allow read queries
+the advantage here is that the AI cannot change or delete important data.
+- I restricted the scope of questions that the AI accepts to only the dataset. This helps guard against prompt injections.
+- SQL validation before execution (check table+column existence). I validate table and column names before running SQL queries
+  and test  before full execution
 - Auto-retry: feed DB error back to LLM once and ask it to fix query
 - Data grounding guardrail: response generation happens only after SQL execution; if no rows, system returns explicit no-result message
 - The backend's `execute_query()` function enforces `SELECT`-only at the string level — any other statement raises a `ValueError` before execution.
