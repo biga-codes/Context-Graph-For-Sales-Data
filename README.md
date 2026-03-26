@@ -88,7 +88,7 @@ The raw query results (capped at 50 rows for context) are sent back to Gemini wi
 
 
 ### Guardrails
-- I only allow read queries
+- I only allow read queries (no writes)
 the advantage here is that the AI cannot change or delete important data.
 - I restricted the scope of questions that the AI accepts to only the dataset. This helps guard against prompt injections.
 - SQL validation before execution (check table+column existence). I validate table and column names before running SQL queries
