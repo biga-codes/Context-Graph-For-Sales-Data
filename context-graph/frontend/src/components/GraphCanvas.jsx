@@ -134,7 +134,7 @@ export default function GraphCanvas() {
         onNodeClick={onNodeClick}
         nodeTypes={nodeTypes}
         fitView
-        fitViewOptions={{ padding: 0.04, minZoom: 0.45, maxZoom: 1.6 }}
+        fitViewOptions={{ padding: 0.01, minZoom: 0.75, maxZoom: 1.8 }}
         minZoom={0.1}
         maxZoom={2}
       >

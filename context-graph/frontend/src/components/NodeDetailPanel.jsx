@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { useStore } from "../store/useStore";
-import { fetchNeighbors } from "../services/api";
 
 const s = {
   panel: {
@@ -69,48 +68,32 @@ const s = {
 };
 
 export default function NodeDetailPanel() {
-  const { selectedNode, setSelectedNode, mergeNeighbors, setGraph } = useStore();
-  const [expanding, setExpanding] = useState(false);
+  const { selectedNode, setSelectedNode, edges, setHighlightedNodeIds } = useStore();
+  const [highlighting, setHighlighting] = useState(false);
 
   if (!selectedNode) return null;
 
   const { label, entityType, color, properties } = selectedNode.data;
 
-  const handleExpand = async () => {
-    if (expanding) return;
-    setExpanding(true);
+  const handleHighlightNeighbors = () => {
+    if (highlighting) return;
+    setHighlighting(true);
     try {
-      const beforeIds = new Set(useStore.getState().nodes.map((n) => n.id));
-      const data = await fetchNeighbors(selectedNode.id);
-      mergeNeighbors(data);
-
-      // Lightweight placement: only position newly added nodes around selected node.
-      const { nodes: allNodes, edges: allEdges } = useStore.getState();
-      const centerX = selectedNode.position?.x ?? 0;
-      const centerY = selectedNode.position?.y ?? 0;
-      const radius = 220;
-
-      const newNodes = allNodes.filter((n) => !beforeIds.has(n.id));
-      const newPosById = new Map();
-      newNodes.forEach((n, idx) => {
-        const angle = (2 * Math.PI * idx) / Math.max(1, newNodes.length);
-        newPosById.set(n.id, {
-          x: centerX + Math.cos(angle) * radius,
-          y: centerY + Math.sin(angle) * radius,
-        });
+      const ids = new Set([selectedNode.id]);
+      edges.forEach((e) => {
+        if (e.source === selectedNode.id || e.target === selectedNode.id) {
+          ids.add(e.source);
+          ids.add(e.target);
+        }
       });
-
-      const adjustedNodes = allNodes.map((n) => {
-        const p = newPosById.get(n.id);
-        return p ? { ...n, position: p } : n;
-      });
-
-      setGraph({ nodes: adjustedNodes, edges: allEdges });
-    } catch (e) {
-      console.error("Expand failed", e);
+      setHighlightedNodeIds([...ids]);
     } finally {
-      setExpanding(false);
+      setHighlighting(false);
     }
+  };
+
+  const handleClearHighlight = () => {
+    setHighlightedNodeIds([]);
   };
 
   return (
@@ -136,13 +119,25 @@ export default function NodeDetailPanel() {
       <button
         style={{
           ...s.expandBtn,
-          opacity: expanding ? 0.7 : 1,
-          cursor: expanding ? "not-allowed" : "pointer",
+          opacity: highlighting ? 0.7 : 1,
+          cursor: highlighting ? "not-allowed" : "pointer",
         }}
-        onClick={handleExpand}
-        disabled={expanding}
+        onClick={handleHighlightNeighbors}
+        disabled={highlighting}
       >
-        {expanding ? "Expanding..." : "⊕ Expand Neighbors"}
+        {highlighting ? "Highlighting..." : "✦ Highlight Neighbors"}
+      </button>
+
+      <button
+        style={{
+          ...s.expandBtn,
+          marginTop: 8,
+          border: "1px solid #64748b",
+          color: "#94a3b8",
+        }}
+        onClick={handleClearHighlight}
+      >
+        Clear Highlight
       </button>
     </div>
   );
