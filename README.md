@@ -76,7 +76,8 @@ This separation makes guardrails reliable: the model explicitly labels relevance
 The raw query results (capped at 50 rows for context) are sent back to Gemini with the original question. The model is asked to produce a 2–4 sentence data-backed answer without mentioning SQL or database internals.
 
 ### Guardrails
-
+- SQL validation before execution (check table+column existence).
+- Auto-retry: feed DB error back to LLM once and ask it to fix query
 - Data grounding guardrail: response generation happens only after SQL execution; if no rows, system returns explicit no-result message
 - The backend's `execute_query()` function enforces `SELECT`-only at the string level — any other statement raises a `ValueError` before execution.
 - Query guardrail: backend enforces SELECT-only execution and rejects mutating SQL.
