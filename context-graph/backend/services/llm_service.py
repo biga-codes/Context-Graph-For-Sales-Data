@@ -3,7 +3,7 @@ import os
 import json
 import re
 import requests
-from services.db import execute_query
+from services.db import execute_query, get_connection
 
 _LLM_PROVIDER = os.getenv("LLM_PROVIDER", "gemini").strip().lower()
 
@@ -183,6 +183,108 @@ Reference specific numbers or entities from the results.
 Do not mention SQL or database internals.
 """
 
+REPAIR_SQL_PROMPT = f"""
+You are fixing a broken SQLite SELECT query for this schema:
+
+{SCHEMA_DESCRIPTION}
+
+Input includes:
+- original user question
+- invalid SQL
+- database or validation error
+
+Return JSON only in this format:
+{{"sql": "<corrected SELECT query>"}}
+
+Rules:
+- Output ONLY one valid SQLite SELECT statement.
+- Use only columns/tables present in the schema.
+- Keep LIMIT <= 100 unless the user asked for more.
+- No markdown/code fences.
+"""
+
+
+def _strip_sql_fences(raw: str) -> str:
+    raw = (raw or "").strip()
+    raw = re.sub(r"^```[a-z]*\n?", "", raw)
+    raw = re.sub(r"\n?```$", "", raw)
+    return raw.strip()
+
+
+def _get_schema_map() -> dict[str, set[str]]:
+    conn = get_connection()
+    try:
+        cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        tables = [r[0] for r in cursor.fetchall()]
+        schema: dict[str, set[str]] = {}
+        for table in tables:
+            cols = conn.execute(f"PRAGMA table_info({table})").fetchall()
+            schema[table] = {c[1] for c in cols}
+        return schema
+    finally:
+        conn.close()
+
+
+def _extract_table_aliases(sql: str) -> dict[str, str]:
+    aliases: dict[str, str] = {}
+    pattern = re.compile(
+        r"\b(?:FROM|JOIN)\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:AS\s+)?([A-Za-z_][A-Za-z0-9_]*)?",
+        re.IGNORECASE,
+    )
+    for table, alias in pattern.findall(sql):
+        aliases[table] = table
+        if alias and alias.upper() not in {"ON", "USING", "WHERE", "GROUP", "ORDER", "LIMIT", "LEFT", "RIGHT", "INNER", "FULL", "CROSS"}:
+            aliases[alias] = table
+    return aliases
+
+
+def _validate_sql_before_execution(sql: str) -> tuple[bool, str | None]:
+    cleaned = (sql or "").strip().rstrip(";")
+    if not cleaned:
+        return False, "Generated SQL is empty."
+    if not cleaned.upper().startswith("SELECT"):
+        return False, "Only SELECT queries are permitted."
+
+    schema = _get_schema_map()
+    aliases = _extract_table_aliases(cleaned)
+
+    # Validate referenced tables.
+    used_tables = {t for t in aliases.values()}
+    for table in used_tables:
+        if table not in schema:
+            return False, f"no such table: {table}"
+
+    # Validate qualified columns (alias.column).
+    for alias, column in re.findall(r"\b([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)\b", cleaned):
+        table = aliases.get(alias, alias)
+        if table in schema and column not in schema[table]:
+            return False, f"no such column: {alias}.{column}"
+
+    # Let SQLite validate syntax/planning without executing full result retrieval.
+    try:
+        execute_query(f"SELECT * FROM ({cleaned}) AS _cg_validate LIMIT 0")
+    except Exception as e:
+        return False, str(e)
+
+    return True, None
+
+
+def _repair_sql_once(user_query: str, bad_sql: str, error_message: str) -> str | None:
+    repair_input = {
+        "question": user_query,
+        "invalid_sql": bad_sql,
+        "error": error_message,
+    }
+    try:
+        raw = _llm_generate(REPAIR_SQL_PROMPT, json.dumps(repair_input))
+        parsed = json.loads(_strip_sql_fences(raw))
+        candidate = (parsed.get("sql") or "").strip()
+        if candidate.upper().startswith("SELECT"):
+            return candidate
+    except Exception:
+        return None
+    return None
+
 
 def classify_and_generate_sql(user_query: str) -> dict:
     """Ask configured LLM to classify query and produce SQL if relevant."""
@@ -195,9 +297,7 @@ def classify_and_generate_sql(user_query: str) -> dict:
             "message": f"LLM request failed: {e}",
         }
 
-    # Strip markdown fences if Gemini wraps output anyway
-    raw = re.sub(r"^```[a-z]*\n?", "", raw)
-    raw = re.sub(r"\n?```$", "", raw)
+    raw = _strip_sql_fences(raw)
     try:
         return json.loads(raw)
     except json.JSONDecodeError:
@@ -239,18 +339,65 @@ def query_pipeline(user_query: str) -> dict:
         }
 
     sql = classification["sql"]
+    repaired_once = False
+
+    is_valid, validation_error = _validate_sql_before_execution(sql)
+    if not is_valid:
+        fixed_sql = _repair_sql_once(user_query, sql, validation_error or "Validation failed")
+        if fixed_sql:
+            repaired_once = True
+            sql = fixed_sql
+            is_valid, validation_error = _validate_sql_before_execution(sql)
+
+    if not is_valid:
+        return {
+            "relevant": True,
+            "answer": f"Query validation error: {validation_error}",
+            "sql": sql,
+            "rows": [],
+        }
 
     try:
         rows = execute_query(sql)
     except ValueError as e:
         return {"relevant": True, "answer": str(e), "sql": sql, "rows": []}
     except Exception as e:
-        return {
-            "relevant": True,
-            "answer": f"Query execution error: {e}",
-            "sql": sql,
-            "rows": [],
-        }
+        if not repaired_once:
+            fixed_sql = _repair_sql_once(user_query, sql, str(e))
+            if fixed_sql:
+                is_valid, validation_error = _validate_sql_before_execution(fixed_sql)
+                if is_valid:
+                    try:
+                        rows = execute_query(fixed_sql)
+                        sql = fixed_sql
+                    except Exception as retry_error:
+                        return {
+                            "relevant": True,
+                            "answer": f"Query execution error after retry: {retry_error}",
+                            "sql": fixed_sql,
+                            "rows": [],
+                        }
+                else:
+                    return {
+                        "relevant": True,
+                        "answer": f"Query validation error after retry: {validation_error}",
+                        "sql": fixed_sql,
+                        "rows": [],
+                    }
+            else:
+                return {
+                    "relevant": True,
+                    "answer": f"Query execution error: {e}",
+                    "sql": sql,
+                    "rows": [],
+                }
+        else:
+            return {
+                "relevant": True,
+                "answer": f"Query execution error: {e}",
+                "sql": sql,
+                "rows": [],
+            }
 
     if not rows:
         answer = "The query returned no results for your question."
