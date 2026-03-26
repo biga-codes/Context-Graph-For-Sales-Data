@@ -54,9 +54,8 @@ I wanted to reduce infrastructure complexity early and focus on graph logic, UX,
 I ingest JSONL data and convert it into relational tables. A single SQLite file makes this easy to manage, reset, back up, and move.
 3. My workload is mostly read-heavy
 My backend reads relational data, builds a graph view, and serves it. SQLite performs well for this kind of local read-focused workload
-4.
-5. I still kept a migration path open
-I’m using standard SQL patterns, so I can move to PostgreSQL later if I need higher concurrency or production-scale features.
+4. I still kept a migration path open by
+using standard SQL patterns, so I can move to PostgreSQL later if I need higher concurrency or production-scale features.
    
 The graph is constructed in-memory from relational queries in `graph_builder.py`, which means you get the flexibility of SQL (for the LLM query path) AND a graph representation (for the UI) from the same source of truth. For a production deployment with millions of rows, swap to PostgreSQL (same query layer) or add a Neo4j graph layer on top.
 
