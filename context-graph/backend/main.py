@@ -1,7 +1,13 @@
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import graph, chat, query
+from dotenv import load_dotenv
 from services.db import init_db
+
+load_dotenv(Path(__file__).parent / ".env")
+
+from routers import graph, chat, query
 
 app = FastAPI(title="Context Graph API", version="1.0.0")
 

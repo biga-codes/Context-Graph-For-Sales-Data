@@ -1,6 +1,6 @@
 # Context Graph Explorer
 
-A graph-based data exploration system with a natural language query interface. Business entities (orders, deliveries, invoices, payments) are modelled as a graph, visualised with React Flow, and queryable through a Gemini-powered chat interface.
+A graph-based data exploration system with a natural language query interface. Business entities (orders, deliveries, invoices, payments) are modelled as a graph, visualised with React Flow, and queryable through an LLM-powered chat interface (Gemini or Groq).
 
 ---
 
@@ -77,7 +77,9 @@ The raw query results (capped at 50 rows for context) are sent back to Gemini wi
 ### Prerequisites
 - Python 3.11+
 - Node.js 18+
-- A [Google Gemini API key](https://ai.google.dev) (free tier)
+- One API key for either:
+    - [Google Gemini](https://ai.google.dev)
+    - [Groq](https://console.groq.com) (free tier, no credit card)
 
 ### Backend
 
@@ -85,7 +87,17 @@ The raw query results (capped at 50 rows for context) are sent back to Gemini wi
 cd backend
 python -m venv venv && source venv/bin/activate   # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-cp .env.example .env                              # add your GEMINI_API_KEY
+cp .env.example .env
+
+# For Groq (recommended free option)
+# LLM_PROVIDER=groq
+# GROQ_API_KEY=...
+# GROQ_MODEL=llama-3.1-8b-instant
+
+# Or for Gemini
+# LLM_PROVIDER=gemini
+# GEMINI_API_KEY=...
+# GEMINI_MODEL=gemini-1.5-flash-latest
 ```
 
 ### Frontend

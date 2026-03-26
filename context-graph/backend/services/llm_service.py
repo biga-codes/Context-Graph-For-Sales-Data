@@ -1,19 +1,109 @@
-"""
-llm_service.py — Wraps Google Gemini to translate natural language → SQL,
-execute it, and return a grounded natural-language answer.
-"""
 
 import os
 import json
 import re
+import requests
 import google.generativeai as genai  # pyright: ignore[reportMissingImports]
+from google.api_core.exceptions import GoogleAPICallError, NotFound
 from services.db import execute_query
 
+_LLM_PROVIDER = os.getenv("LLM_PROVIDER", "gemini").strip().lower()
+
 _API_KEY = os.getenv("GEMINI_API_KEY")
+_MODEL_CANDIDATES = [
+    os.getenv("GEMINI_MODEL", "").strip(),
+    "gemini-2.0-flash",
+    "gemini-1.5-flash-latest",
+    "gemini-1.5-flash",
+    "gemini-1.5-flash-8b",
+]
 _model = None
 if _API_KEY:
-        genai.configure(api_key=_API_KEY)
-        _model = genai.GenerativeModel("gemini-1.5-flash")
+    genai.configure(api_key=_API_KEY)
+
+
+
+def _get_model():
+    global _model
+    if _model is not None:
+        return _model
+
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        return None
+
+    genai.configure(api_key=api_key)
+    tried = set()
+    candidates = [m for m in _MODEL_CANDIDATES if m]
+
+    # Prefer models that are explicitly listed for this key/project.
+    available = set()
+    try:
+        for m in genai.list_models():
+            name = m.name.replace("models/", "")
+            if "generateContent" in getattr(m, "supported_generation_methods", []):
+                available.add(name)
+    except Exception:
+        available = set()
+
+    ordered = []
+    if available:
+        ordered.extend([m for m in candidates if m.replace("models/", "") in available])
+    ordered.extend(candidates)
+
+    for model_name in ordered:
+        normalized = model_name.replace("models/", "")
+        if not normalized or normalized in tried:
+            continue
+        tried.add(normalized)
+        try:
+            _model = genai.GenerativeModel(normalized)
+            return _model
+        except NotFound:
+            continue
+        except GoogleAPICallError:
+            continue
+        except Exception:
+            continue
+
+    return None
+
+
+def _llm_generate(system_prompt: str, user_prompt: str) -> str:
+    if _LLM_PROVIDER == "groq":
+        api_key = os.getenv("GROQ_API_KEY")
+        if not api_key:
+            raise RuntimeError("LLM is unavailable. Set GROQ_API_KEY in backend/.env.")
+
+        model = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant").strip() or "llama-3.1-8b-instant"
+        response = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": model,
+                "temperature": 0,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+            },
+            timeout=60,
+        )
+        response.raise_for_status()
+        payload = response.json()
+        return (payload["choices"][0]["message"]["content"] or "").strip()
+
+    model = _get_model()
+    if model is None:
+        raise RuntimeError("LLM is unavailable. Check GEMINI_API_KEY and GEMINI_MODEL in backend/.env.")
+
+    response = model.generate_content(
+        [{"role": "user", "parts": [system_prompt + "\n\n" + user_prompt]}]
+    )
+    return (response.text or "").strip()
 
 # ── Schema context injected into every system prompt ─────────────────────────
 SCHEMA_DESCRIPTION = """
@@ -93,17 +183,16 @@ Do not mention SQL or database internals.
 
 
 def classify_and_generate_sql(user_query: str) -> dict:
-    """Ask Gemini to classify the query and produce SQL if relevant."""
-    if _model is None:
+    """Ask configured LLM to classify query and produce SQL if relevant."""
+
+    try:
+        raw = _llm_generate(SYSTEM_PROMPT, "User question: " + user_query)
+    except Exception as e:
         return {
             "relevant": False,
-            "message": "LLM is not configured. Set GEMINI_API_KEY in backend/.env.",
+            "message": f"LLM request failed: {e}",
         }
 
-    response = _model.generate_content(
-        [{"role": "user", "parts": [SYSTEM_PROMPT + "\n\nUser question: " + user_query]}]
-    )
-    raw = response.text.strip()
     # Strip markdown fences if Gemini wraps output anyway
     raw = re.sub(r"^```[a-z]*\n?", "", raw)
     raw = re.sub(r"\n?```$", "", raw)
@@ -114,16 +203,19 @@ def classify_and_generate_sql(user_query: str) -> dict:
 
 
 def generate_answer(question: str, results: list[dict]) -> str:
-    """Ask Gemini to formulate a natural-language answer from query results."""
-    if _model is None:
-        return "LLM is not configured. Set GEMINI_API_KEY in backend/.env."
+    """Ask configured LLM to formulate a natural-language answer from query results."""
 
     prompt = ANSWER_PROMPT.format(
         question=question,
         results=json.dumps(results[:50], default=str),  # cap at 50 rows for context
     )
-    response = _model.generate_content(prompt)
-    return response.text.strip()
+    try:
+        return _llm_generate(
+            "You are a business data analyst assistant. Follow the user instruction exactly.",
+            prompt,
+        )
+    except Exception as e:
+        return f"LLM answer generation failed: {e}"
 
 
 def query_pipeline(user_query: str) -> dict:
