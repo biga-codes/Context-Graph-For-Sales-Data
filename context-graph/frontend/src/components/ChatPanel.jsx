@@ -5,7 +5,7 @@ import { sendChat } from "../services/api";
 const SUGGESTIONS = [
   "Top products by billing document count",
   "Which products have the highest billed net amount, and how many billing documents does each have?",
-  "Top products by billing document count",
+  "Top products by sales count",
   "Show orders that were delivered and billed",
 ];
 
