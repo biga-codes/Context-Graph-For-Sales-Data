@@ -3,7 +3,8 @@
 A graph-based data exploration system with a natural language query interface. Business entities (orders, deliveries, invoices, payments) are modelled as a graph, visualised with React Flow, and queryable through an LLM-powered chat interface (Gemini or Groq).
 
 ---
-[![Watch the video on YouTube](https://img.youtube.com/vi/F7UAd0A4Z3E/0.jpg)](https://www.youtube.com/watch?v=F7UAd0A4Z3E)
+[![Watch the video on YouTube](<img width="1890" height="768" alt="Screenshot 2026-03-26 151439" src="https://github.com/user-attachments/assets/86da6bb4-bae5-4bd3-8480-3c73066bb3e5" />
+)](https://www.youtube.com/watch?v=F7UAd0A4Z3E)
 
 
 ## Architecture
