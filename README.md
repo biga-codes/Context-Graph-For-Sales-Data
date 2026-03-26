@@ -48,7 +48,7 @@ https://github.com/user-attachments/assets/d21b0e70-8d17-4d4c-af1d-c02cc57555f5
 
 Nodes represent business entities: Customer, Order, OrderItem, Product, Delivery, Invoice, Payment, Address.
 
-Edges capture the real document flow:
+Edges capture the real flow of data/ relationships :
 - `Customer → Order` (placed)
 - `Order → OrderItem` (contains)
 - `OrderItem → Product` (references)
