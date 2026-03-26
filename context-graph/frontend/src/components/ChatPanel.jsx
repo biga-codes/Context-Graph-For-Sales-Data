@@ -3,10 +3,10 @@ import { useStore } from "../store/useStore";
 import { sendChat } from "../services/api";
 
 const SUGGESTIONS = [
-  "Trace the full O2C flow for billing document 90504248 (order -> delivery -> billing -> payment).",
-  "Show the top 20 sales orders that have deliveries but no billing document yet.",
-  "For sales order 740506, show linked deliveries, billing documents, and payment clearing details.",
+  "Which product has the highest number of deliveries?",
   "Which products have the highest billed net amount, and how many billing documents does each have?",
+  "For sales order 740506, what are the payment details and delivery status?",
+  "Show orders that were delivered and billed",
 ];
 
 export default function ChatPanel() {
