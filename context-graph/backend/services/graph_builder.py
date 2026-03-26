@@ -2,6 +2,10 @@
 graph_builder.py — Builds nodes + edges from the SAP-style SQLite database.
 """
 
+import os
+import time
+from threading import Lock
+
 from services.db import get_connection
 
 NODE_COLORS = {
@@ -14,6 +18,10 @@ NODE_COLORS = {
     "Product":          "#34d399",
     "Plant":            "#94a3b8",
 }
+
+_GRAPH_CACHE = {"data": None, "built_at": 0.0}
+_GRAPH_CACHE_LOCK = Lock()
+_GRAPH_CACHE_TTL_SECONDS = int(os.getenv("GRAPH_CACHE_TTL_SECONDS", "120"))
 
 
 def _node(id, label, type_, data):
@@ -207,8 +215,26 @@ def build_full_graph() -> dict:
     return {"nodes": unique_nodes, "edges": edges}
 
 
+def _get_cached_full_graph() -> dict:
+    now = time.time()
+    with _GRAPH_CACHE_LOCK:
+        if (
+            _GRAPH_CACHE["data"] is not None
+            and now - _GRAPH_CACHE["built_at"] < _GRAPH_CACHE_TTL_SECONDS
+        ):
+            return _GRAPH_CACHE["data"]
+
+    data = build_full_graph()
+
+    with _GRAPH_CACHE_LOCK:
+        _GRAPH_CACHE["data"] = data
+        _GRAPH_CACHE["built_at"] = time.time()
+
+    return data
+
+
 def get_node_neighbors(node_id: str) -> dict:
-    full = build_full_graph()
+    full = _get_cached_full_graph()
     neighbor_ids = set()
     filtered_edges = []
     for e in full["edges"]:
