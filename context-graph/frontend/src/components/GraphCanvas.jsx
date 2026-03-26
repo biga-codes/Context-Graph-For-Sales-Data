@@ -8,7 +8,7 @@ import ReactFlow, {
   BackgroundVariant,
 } from "reactflow";
 import { useStore } from "../store/useStore";
-import { fetchGraph, fetchNeighbors } from "../services/api";
+import { fetchGraph } from "../services/api";
 import { applyDagreLayout } from "../services/layout";
 import EntityNode from "./EntityNode";
 import NodeDetailPanel from "./NodeDetailPanel";
@@ -21,7 +21,7 @@ export default function GraphCanvas() {
     setLoading,
     setSelectedNode,
     highlightedNodeIds,
-    mergeNeighbors,
+    setHighlightedNodeIds,
   } = useStore();
 
   const storeNodes = useStore((s) => s.nodes);
@@ -105,36 +105,36 @@ export default function GraphCanvas() {
   );
 
   const onHubClick = useCallback(
-    async (hubNode) => {
+    (hubNode) => {
       setSelectedNode(hubNode);
 
+      // Keep hub interaction snappy: center + zoom in, no graph mutation.
       if (rfInstance && hubNode?.position) {
         rfInstance.setCenter(hubNode.position.x, hubNode.position.y, {
-          zoom: 1,
-          duration: 350,
+          zoom: 1.2,
+          duration: 260,
         });
       }
 
-      try {
-        const data = await fetchNeighbors(hubNode.id);
-        mergeNeighbors(data);
+      // Highlight first + second-degree neighbors around the selected hub.
+      const adjacency = new Map();
+      storeEdges.forEach((e) => {
+        if (!adjacency.has(e.source)) adjacency.set(e.source, new Set());
+        if (!adjacency.has(e.target)) adjacency.set(e.target, new Set());
+        adjacency.get(e.source).add(e.target);
+        adjacency.get(e.target).add(e.source);
+      });
 
-        const { nodes: allNodes, edges: allEdges } = useStore.getState();
-        const laid = applyDagreLayout(allNodes, allEdges);
-        setGraph({ nodes: laid, edges: allEdges });
+      const center = hubNode.id;
+      const first = adjacency.get(center) || new Set();
+      const second = new Set();
+      first.forEach((n1) => {
+        (adjacency.get(n1) || new Set()).forEach((n2) => second.add(n2));
+      });
 
-        const focused = laid.find((n) => n.id === hubNode.id);
-        if (rfInstance && focused?.position) {
-          rfInstance.setCenter(focused.position.x, focused.position.y, {
-            zoom: 1,
-            duration: 350,
-          });
-        }
-      } catch (e) {
-        console.error("Hub expand failed", e);
-      }
+      setHighlightedNodeIds([center, ...first, ...second]);
     },
-    [mergeNeighbors, rfInstance, setGraph, setSelectedNode]
+    [rfInstance, setSelectedNode, setHighlightedNodeIds, storeEdges]
   );
 
   if (loading) {
@@ -176,7 +176,7 @@ export default function GraphCanvas() {
         <Panel position="bottom-left">
           <div style={hubStyles.card}>
             <div style={hubStyles.header}>Top 5 Hubs</div>
-            <div style={hubStyles.sub}>Click to center + expand context</div>
+            <div style={hubStyles.sub}>Click to center + highlight context</div>
             <div style={hubStyles.list}>
               {topHubs.length === 0 && <div style={hubStyles.empty}>No hubs available</div>}
               {topHubs.map((h) => (
