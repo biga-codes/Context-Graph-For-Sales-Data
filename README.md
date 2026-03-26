@@ -42,7 +42,12 @@ https://github.com/user-attachments/assets/d21b0e70-8d17-4d4c-af1d-c02cc57555f5
 
 ### Database Choice
 
-**SQLite** was chosen for zero-setup portability — the entire dataset lives in a single file, requires no server process, and is trivially committed or shared. The graph is constructed in-memory from relational queries in `graph_builder.py`, which means you get the flexibility of SQL (for the LLM query path) AND a graph representation (for the UI) from the same source of truth. For a production deployment with millions of rows, swap to PostgreSQL (same query layer) or add a Neo4j graph layer on top.
+1. SQLite was chosen for local portability, zero infrastructure setup, and easy reproducibility for take-home evaluation.
+2. It is a good fit for this dataset size and lets us keep ingestion + query path simple and deterministic.
+3. SQLite also supports transparent SQL inspection and fast iteration for prompt-to-SQL debugging.
+4. Tradeoff: not ideal for concurrent heavy workloads or very large production volumes; in production this can move to PostgreSQL with minimal API changes.
+   
+The graph is constructed in-memory from relational queries in `graph_builder.py`, which means you get the flexibility of SQL (for the LLM query path) AND a graph representation (for the UI) from the same source of truth. For a production deployment with millions of rows, swap to PostgreSQL (same query layer) or add a Neo4j graph layer on top.
 
 ### Graph Modelling
 
@@ -73,9 +78,11 @@ The raw query results (capped at 50 rows for context) are sent back to Gemini wi
 
 ### Guardrails
 
-- The Stage 1 prompt explicitly instructs the model to classify non-dataset queries as irrelevant and return a canned refusal message.
+- Data grounding guardrail: response generation happens only after SQL execution; if no rows, system returns explicit no-result message
 - The backend's `execute_query()` function enforces `SELECT`-only at the string level — any other statement raises a `ValueError` before execution.
-- The frontend chat panel does not expose raw query results unless the user clicks "Show SQL", preventing confusion between AI-generated text and data-backed answers.
+- Query guardrail: backend enforces SELECT-only execution and rejects mutating SQL.
+- Domain guardrail: out-of-scope prompts are rejected with a fixed dataset-only message.
+- Provider/ops guardrail: LLM failures (quota/model/access) are caught and returned as non-crashing API responses.
 
 ---
 
