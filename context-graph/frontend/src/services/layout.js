@@ -6,7 +6,7 @@ const NODE_H = 60;
 export function applyDagreLayout(nodes, edges, direction = "LR") {
   const g = new dagre.graphlib.Graph();
   g.setDefaultEdgeLabel(() => ({}));
-  g.setGraph({ rankdir: direction, ranksep: 80, nodesep: 40 });
+  g.setGraph({ rankdir: direction, ranksep: 130, nodesep: 85, edgesep: 30 });
 
   nodes.forEach((n) => g.setNode(n.id, { width: NODE_W, height: NODE_H }));
   edges.forEach((e) => g.setEdge(e.source, e.target));

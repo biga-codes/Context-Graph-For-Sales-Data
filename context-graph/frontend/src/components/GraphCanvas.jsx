@@ -133,6 +133,11 @@ export default function GraphCanvas() {
         onEdgesChange={onEdgesChange}
         onNodeClick={onNodeClick}
         nodeTypes={nodeTypes}
+        defaultEdgeOptions={{
+          type: "smoothstep",
+          pathOptions: { offset: 36, borderRadius: 16 },
+          style: { strokeWidth: 1.2 },
+        }}
         fitView
         fitViewOptions={{ padding: 0.01, minZoom: 0.75, maxZoom: 1.8 }}
         minZoom={0.1}
