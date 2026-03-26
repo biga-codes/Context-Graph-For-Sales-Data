@@ -2,7 +2,8 @@ import sqlite3
 import os
 from pathlib import Path
 
-DB_PATH = Path(__file__).parent.parent / "data" / "context_graph.db"
+DEFAULT_DB_PATH = Path(__file__).parent.parent / "data" / "context_graph.db"
+DB_PATH = Path(os.getenv("CONTEXT_GRAPH_DB_PATH", str(DEFAULT_DB_PATH)))
 
 
 def get_connection() -> sqlite3.Connection:

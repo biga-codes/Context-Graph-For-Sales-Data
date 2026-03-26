@@ -3,10 +3,10 @@ import { useStore } from "../store/useStore";
 import { sendChat } from "../services/api";
 
 const SUGGESTIONS = [
-  "Which products have the most billing documents?",
-  "Trace the full flow of invoice INV001",
-  "Show orders that were delivered but not billed",
-  "Which customers have the most orders?",
+  "Trace the full O2C flow for billing document 90504248 (order -> delivery -> billing -> payment).",
+  "Show the top 20 sales orders that have deliveries but no billing document yet.",
+  "For sales order 740506, show linked deliveries, billing documents, and payment clearing details.",
+  "Which products have the highest billed net amount, and how many billing documents does each have?",
 ];
 
 export default function ChatPanel() {
