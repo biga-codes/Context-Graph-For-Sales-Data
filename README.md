@@ -53,7 +53,7 @@ I wanted to reduce infrastructure complexity early and focus on graph logic, UX,
 2. It is a good fit for this dataset size, the data pipeline works naturally with a file-based DB
 I ingest JSONL data and convert it into relational tables. A single SQLite file makes this easy to manage, reset, back up, and move.
 3. My workload is mostly read-heavy
-My backend reads relational data, builds a graph view, and serves it. SQLite performs well for this kind of local read-focused workload
+my backend reads relational data, builds a graph view, and serves it. SQLite performs well for this kind of local read-focused workload
 4. I still kept a migration path open by
 using standard SQL patterns, so I can move to PostgreSQL later if I need higher concurrency or production-scale features.
    
