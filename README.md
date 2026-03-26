@@ -39,7 +39,7 @@ https://github.com/user-attachments/assets/d21b0e70-8d17-4d4c-af1d-c02cc57555f5
               Google Gemini 1.5 Flash
 ```
 ### Design Decisions I made:
-- caching graph nodes server side so they load faster -> this was especially important because I used a free tier web service ( I added this strategy for graph generation to reduce repeated load on the backend server and helps with much faster reloads after the first request.)
+- caching graph nodes server side so they load faster -> this was especially important because I used a free tier web service ( I added this strategy for graph generation to reduce repeated load on the backend server and it really helps with much faster reloads after the first request.)
 - adding a small mini index for all major hubs (nodes with the most connections) for quick access, and neighbourhood highlighting ( upto 2nd degree neighbours have been considered by me for this purpose)
 - I kept node meta data attached to each node for easy viewing.
 - entity types have specific colors and badges so you can differentiate between them
