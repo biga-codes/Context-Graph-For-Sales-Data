@@ -178,7 +178,7 @@ npm run dev
 | Question | What it tests |
 |---|---|
 | Which products are associated with the highest number of billing documents? | JOIN across order_items, invoices, products |
-| Trace the full flow of invoice INV001 | Multi-table JOIN: order → delivery → invoice → payment |
+| trace the data flow of product 3001456 | Multi-table JOIN: suggests a centralized production and storage system for product 3001456 |
 | Show sales orders that were delivered but never billed | LEFT JOIN + NULL check |
 | Which customers have the most orders? | GROUP BY + ORDER BY |
 | What is the total payment amount by method? | Aggregation on payments |
