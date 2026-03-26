@@ -92,7 +92,7 @@ The raw query results (capped at 50 rows for context) are sent back to Gemini wi
 - Node.js 18+
 - One API key for either:
     - [Google Gemini](https://ai.google.dev)
-    - [Groq](https://console.groq.com) (free tier, no credit card)
+    - [Groq](https://console.groq.com) 
 
 ### Backend
 
