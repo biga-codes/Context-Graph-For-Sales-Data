@@ -10,9 +10,6 @@ https://github.com/user-attachments/assets/d21b0e70-8d17-4d4c-af1d-c02cc57555f5
 
 
 
-# Live Deployment Link:
-https://context-graph-for-sales-data-front-end.onrender.com/
-
 ## Architecture
 
 ```
@@ -206,3 +203,7 @@ context-graph/
             ├── NodeDetailPanel.jsx
             └── ChatPanel.jsx    # Chat + SQL disclosure
 ```
+
+
+# Live Deployment Link:
+https://context-graph-for-sales-data-front-end.onrender.com/
