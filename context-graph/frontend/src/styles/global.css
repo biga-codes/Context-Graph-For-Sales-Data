@@ -35,6 +35,13 @@ body {
 /* React Flow overrides */
 .react-flow__background { background: var(--bg); }
 .react-flow__minimap { background: var(--surface); }
+.react-flow__minimap-node {
+  stroke: #e2e8f0 !important;
+  stroke-width: 1.5px !important;
+}
+.react-flow__minimap-mask {
+  fill: #3b82f633 !important;
+}
 .react-flow__controls button {
   background: var(--surface-2);
   border: 1px solid var(--border);

@@ -88,21 +88,28 @@ export default function GraphCanvas() {
         maxZoom={2}
       >
         <Background variant={BackgroundVariant.Dots} gap={24} size={1} color="#1e2230" />
-        <Controls style={{ background: "#151820", border: "1px solid #2a2f3e" }} />
+        <Controls
+          position="bottom-right"
+          showZoom
+          showFitView
+          showInteractive
+          style={{ background: "#151820", border: "1px solid #2a2f3e", zIndex: 12 }}
+        />
         <MiniMap
           position="bottom-left"
           pannable
           zoomable
-          nodeColor={(n) => n.data?.color || "#3b82f6"}
-          nodeStrokeColor={(n) => n.data?.color || "#3b82f6"}
+          nodeColor={(n) => n.data?.color || "#60a5fa"}
+          nodeStrokeColor={() => "#e2e8f0"}
+          nodeStrokeWidth={2}
           style={{
-            background: "#151820",
-            border: "1px solid #2a2f3e",
+            background: "#0b1220",
+            border: "1px solid #3b82f6",
             width: 220,
             height: 140,
             zIndex: 6,
           }}
-          maskColor="#0d0f1499"
+          maskColor="#3b82f633"
         />
       </ReactFlow>
       <NodeDetailPanel />
