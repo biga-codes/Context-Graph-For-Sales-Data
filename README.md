@@ -114,7 +114,7 @@ the advantage here is that the AI cannot change or delete important data.
 - Data grounding guardrail: response generation happens only after SQL execution; if no rows, system returns explicit no-result message
 - The backend's `execute_query()` function enforces `SELECT`-only at the string level & any other statement raises a `ValueError` before execution.
 - Query guardrail: backend enforces SELECT-only execution and rejects mutating SQL.
-- Domain guardrail: out-of-scope prompts are rejected with a fixed dataset-only message.
+- Domain guardrail: out-of-scope prompts are rejected with a restrict to dataset-only message.
 - Provider/ops guardrail: LLM failures (quota/model/access) are caught and returned as non-crashing API responses.
 
 ---
