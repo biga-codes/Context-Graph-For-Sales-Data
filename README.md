@@ -9,8 +9,8 @@ A graph-based data exploration system with a natural language query interface. B
 
 https://github.com/user-attachments/assets/6b0d1a9f-f91b-423b-990e-30237c1d3f3c
 
-### Youtube demo video Link:[UI features explained in detail]
-[![Watch the video on YouTube](https://img.youtube.com)](https://youtu.be/BZ1vtfX5aSc?si=8V4BYJVI1GWURjjs)
+### Youtube demo video Link:
+[![Watch the Demo Video on Youtube to see the UI upgrades I made](https://img.shields.io/badge/YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://youtu.be/BZ1vtfX5aSc?si=8V4BYJVI1GWURjjs)
 
 https://github.com/user-attachments/assets/d21b0e70-8d17-4d4c-af1d-c02cc57555f5
 
