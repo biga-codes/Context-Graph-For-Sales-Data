@@ -9,7 +9,7 @@ A graph-based data exploration system with a natural language query interface. B
 
 https://github.com/user-attachments/assets/6b0d1a9f-f91b-423b-990e-30237c1d3f3c
 
-Youtube demo video Link: 
+### Youtube demo video Link:[UI features explainedin detail here]
 [![Watch the video on YouTube](https://img.youtube.com)](https://youtu.be/BZ1vtfX5aSc?si=8V4BYJVI1GWURjjs)
 
 
