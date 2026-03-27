@@ -1,10 +1,23 @@
 # Context Graph Explorer
 
 A graph-based data exploration system with a natural language query interface. Business entities (orders, deliveries, invoices, payments) are modelled as a graph, visualised with React Flow, and queryable through an LLM-powered chat interface (Gemini or Groq).
-
 ---
+
+## Table of Contents
+
+- [Demo](#demo)
+- [Architecture](#architecture)
+- [Design Decisions](#design-decisions-i-made)
+- [Database Choice](#database-choice)
+- [Graph Modelling](#graph-modelling)
+- [LLM Prompting Strategy](#llm-prompting-strategy)
+- [Guardrails](#guardrails)
+- [Setup](#setup)
+- [Example Queries](#example-queries)
+- [Project Structure](#project-structure)
+- [Live Deployment Link](#live-deployment-link)
 ## Demo
-I've made a few UI changes as you can see from the first video, the second video details the design decisions/thoughts. Click here to see the entire UI demo : [click here](https://youtu.be/BZ1vtfX5aSc?si=8V4BYJVI1GWURjjs)
+I've made a few UI changes as you can see from the first video, the second video details the design decisions/thoughts. Click here to see the entire new UI demo : [click here](https://youtu.be/BZ1vtfX5aSc?si=8V4BYJVI1GWURjjs)
 
 
 https://github.com/user-attachments/assets/6b0d1a9f-f91b-423b-990e-30237c1d3f3c
