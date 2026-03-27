@@ -38,7 +38,7 @@ https://github.com/user-attachments/assets/d21b0e70-8d17-4d4c-af1d-c02cc57555f5
 │  │   EntityNode         │  │   SQL disclosure      │   │
 │  │   NodeDetailPanel    │  │   Node highlighting   │   │
 │  └──────────────────────┘  └───────────────────────┘   │
-│              Zustand global store                        │
+│                    global store                        │
 └────────────────────────┬────────────────────────────────┘
                          │ REST /api/*
 ┌────────────────────────▼────────────────────────────────┐
@@ -53,7 +53,7 @@ https://github.com/user-attachments/assets/d21b0e70-8d17-4d4c-af1d-c02cc57555f5
         │  (context_graph.db)             │
         └─────────────────────────────────┘
                          │
-              Google Gemini 1.5 Flash
+              Google Gemini/Groq
 ```
 ### Design Decisions I made:
 - caching graph nodes server side so they load faster -> this was especially important because I used a free tier web service ( I added this strategy for graph generation to reduce repeated load on the backend server and it really helps with much faster reloads after the first request.)
