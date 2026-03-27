@@ -1,6 +1,7 @@
 # Context Graph Explorer
-
+---
 A graph-based data exploration system with a natural language query interface. Business entities (orders, deliveries, invoices, payments) are modelled as a graph, visualised with React Flow, and queryable through an LLM-powered chat interface (Gemini or Groq).
+
 ---
 
 ## Table of Contents
